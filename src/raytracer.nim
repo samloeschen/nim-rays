@@ -8,6 +8,8 @@ from random import rand
 from times import cpuTime
 from math import sqrt
 
+
+
 type Ray = object
     origin: Vec3
     direction: Vec3
@@ -20,11 +22,32 @@ type HitInfo = object
     position: Vec3
     normal: Vec3
 
+type Plane = object
+    position: Vec3
+    normal: Vec3
+
+proc hit(p: Plane, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
+
+    let denom = dot(normalize(p.normal), normalize(r.direction))
+
+    if denom > 1e-6:
+        let offset = p.position - r.origin
+        let t = dot(offset, p.normal) / denom
+        if t < tMax and t > tMin:
+            hitInfo.t = t
+            hitInfo.position = r.getPoint(t)
+            hitInfo.normal = p.normal
+            return true
+
+    return false
+
+const plane = Plane(position: Vec3(x: 1, y: -0.4, z: -1), normal: Vec3(x: 0, y: -1, z: 0))
+
 type Sphere = object
     center: Vec3
     radius: float32
 
-func hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
+proc hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
     let
         oc = r.origin - s.center
         a = dot(r.direction, r.direction)
@@ -51,10 +74,15 @@ func hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): boo
 
     return false
 
-func hit[Surface](sequence: seq[Surface], r: Ray, tMin, tMax: float32, hitInfo: var HitInfo): bool =
+proc hit[Surface](sequence: seq[Surface], r: Ray, tMin, tMax: float32, hitInfo: var HitInfo): bool =
     var
         didHit = false
         nearest: float32 = tMax
+
+    # world plane first
+    if plane.hit(r, tMin, nearest, hitInfo):
+        didHit = true
+        nearest = hitInfo.t
 
     for i in 0..<sequence.len:
         if (sequence[i].hit(r, tMin, nearest, hitInfo)):
@@ -72,6 +100,7 @@ type Camera = object
 func getRay(c: Camera, u, v: float): Ray =
     result = Ray(origin: c.position, direction: c.lowerLeft + (c.horizontal * u) + (c.vertical * v))
 
+# non allocating version of get ray
 func setRay(c: Camera, u, v: float, ray: var Ray) =
     ray.origin = c.position
     ray.direction = c.lowerLeft + (c.horizontal * u) + (c.vertical * v)
@@ -83,11 +112,13 @@ const
     backgroundB = Vec3(x: 1.0, y: 1.0, z: 1.0)
 
 const
-    world = @[
+    spheres = @[
         Sphere(center: Vec3(x: 0, y: 0, z: -1), radius: 0.5),
         Sphere(center: Vec3(x: 1, y: 0, z: -1), radius: 0.4),
-        Sphere(center: Vec3(x: -1, y: 0, z: -1), radius: 0.4)
+        Sphere(center: Vec3(x: -1, y: 0, z: -1), radius: 0.4),
     ]
+
+
 
 const camera = Camera(
     lowerLeft:  Vec3(x: -2.0, y: -1.0, z: -1.0),
@@ -96,11 +127,13 @@ const camera = Camera(
     position:   Vec3(x:  0.0, y:  0.0, z:  0.0)
 )
 
-# SCENE
+proc sample (ray: Ray, color: var Vec3, hitInfo: var HitInfo) {.inline} =
 
-func sample (ray: Ray, color: var Vec3, hitInfo: var HitInfo) {.inline} =
-    if world.hit(ray, 0, 1000, hitInfo):
+    if spheres.hit(ray, 0, 1000, hitInfo):
         color += (hitInfo.normal + 1) * 0.5
+
+    elif plane.hit(ray, 0, 1000, hitInfo):
+            color += (hitInfo.normal + 1) * 0.5
     else:
         let
             dir = normalize(ray.direction)

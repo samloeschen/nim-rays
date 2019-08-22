@@ -56,7 +56,7 @@ func mul* (lhs: var Vec3, rhs: Vec3): Vec3 {.inline.} =
                   y: lhs.y * rhs.y,
                   z: lhs.z * rhs.z)
 
-func `/`* (lhs: Vec3, rhs: Vec3): Vec3 {.inline.} =
+func `/`* (lhs, rhs: Vec3): Vec3 {.inline.} =
     result = Vec3(x: lhs.x / rhs.x,
                   y: lhs.y / rhs.y,
                   z: lhs.z / rhs.z)
@@ -66,8 +66,11 @@ func `/`* (lhs: Vec3, rhs: float32): Vec3 {.inline.} =
                   y: lhs.y / rhs,
                   z: lhs.z / rhs)
 
-func dot* (lhs: Vec3, rhs: Vec3): float32 {.inline.} =
-    result = lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z;
+func dot* (lhs, rhs: Vec3): float32 {.inline.} =
+    result = lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+
+func dot* (lhs: Vec3, rhs: float32): float32 {.inline.} =
+    result = lhs.x * rhs + lhs.y * rhs + lhs.z * rhs
 
 func len* (v: Vec3): float32 {.inline.} =
     result = sqrt(v.x * v.x + v.y * v.y + v.z * v.z)
