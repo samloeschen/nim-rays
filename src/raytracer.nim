@@ -2,8 +2,10 @@ import stb_image/read as stbi
 import stb_image/write as stbiw
 import interpolation
 import vectors
-import random
-import times
+import progress, os
+
+from random import rand
+from times import cpuTime
 from math import sqrt
 
 type Ray = object
@@ -107,7 +109,12 @@ func sample (ray: Ray, color: var Vec3, hitInfo: var HitInfo) {.inline} =
 
 proc draw(width, height, samples: int) =
 
-    let start = cpuTime()
+    let
+        start = cpuTime()
+        increment = int(width * height / 100)
+
+    var bar = newProgressBar()
+    bar.start()
 
     var
         imgData = newSeq[byte](width * height * stbiw.RGB)
@@ -119,7 +126,7 @@ proc draw(width, height, samples: int) =
 
     for y in countdown(height - 1, 0):
         for x in 0..<width:
-            var color = Vec3(x: 0, y: 0, z: 0)
+            var color = Vec3()
             for s in 0..<samples:
                 let
                     u = (float32(x) + rand(1.0)) / w
@@ -136,8 +143,12 @@ proc draw(width, height, samples: int) =
 
             count += stbiw.RGB
 
+            if (count mod increment) == 0:
+                bar.increment()
+
     stbiw.writePNG("output.png", width, height, stbiw.RGB, imgData)
 
+    bar.finish()
     echo "✨ Finished raytracing in ", cpuTime() - start, " seconds ✨"
 
 draw(512, 256, 100)
