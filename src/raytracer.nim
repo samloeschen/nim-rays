@@ -2,7 +2,6 @@ import stb_image/read as stbi
 import stb_image/write as stbiw
 import interpolation
 import vectors
-import sequtils
 from math import sqrt
 
 type Ray = object
@@ -17,13 +16,11 @@ type HitInfo = object
     position: Vec3
     normal: Vec3
 
-
 type Sphere = object
     center: Vec3
     radius: float32
 
-
-proc hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
+func hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
     let
         oc = r.origin - s.center
         a = dot(r.direction, r.direction)
@@ -37,18 +34,20 @@ proc hit(s: Sphere, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): boo
             hitInfo.position = r.getPoint(t)
             hitInfo.normal = (hitInfo.position - s.center) / s.radius
 
-        var t = (-b - sqrt(disc)) / a
+        let discRoot = sqrt(disc)
+        var t = (-b - discRoot) / a
         if t < tMax and t > tMin:
             setHitInfo(t, hitInfo)
             return true
-        t = (-b + sqrt(disc)) / a
+
+        t = (-b + discRoot) / a
         if t < tMax and t > tMin:
             setHitInfo(t, hitInfo)
             return true
 
     return false
 
-proc hit[Surface](sequence: seq[Surface], r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
+func hit[Surface](sequence: seq[Surface], r: Ray, tMin, tMax: float32, hitInfo: var HitInfo): bool =
     var
         didHit = false
         nearest: float32 = tMax
@@ -60,30 +59,41 @@ proc hit[Surface](sequence: seq[Surface], r: Ray, tMin: float, tMax: float, hitI
 
     return didHit
 
+type Camera = object
+    position: Vec3
+    lowerLeft: Vec3
+    horizontal: Vec3
+    vertical: Vec3
+
+func getRay(c: Camera, u, v: float): Ray =
+    result = Ray(origin: c.position, direction: c.lowerLeft + (c.horizontal * u) + (c.vertical * v))
+
+
+# SCENE
 const
     backgroundA = Vec3(x: 0.5, y: 0.7, z: 1.0)
     backgroundB = Vec3(x: 1.0, y: 1.0, z: 1.0)
 
 const
-    testSphere = Sphere(center: Vec3(x: 0, y: 0, z: -1), radius: 0.5)
-
-
-const
     spheres = @[
         Sphere(center: Vec3(x: 0, y: 0, z: -1), radius: 0.5),
-        Sphere(center: Vec3(x: 1, y: 0, z: -1), radius: 0.4)
+        Sphere(center: Vec3(x: 1, y: 0, z: -1), radius: 0.4),
+        Sphere(center: Vec3(x: -1, y: 0, z: -1), radius: 0.4)
     ]
 
-proc draw(width: int, height: int) =
+const camera = Camera(
+    lowerLeft:  Vec3(x: -2.0, y: -1.0, z: -1.0),
+    horizontal: Vec3(x:  4.0, y:  0.0, z:  0.0),
+    vertical:   Vec3(x:  0.0, y:  2.0, z:  0.0),
+    position:   Vec3(x:  0.0, y:  0.0, z:  0.0)
+)
+
+# SCENE
+
+func draw(width, height: int) =
     var
         imgData   = newSeq[byte](width * height * stbiw.RGB)
         count     = 0
-
-    let
-        lowerLeft   = Vec3(x: -2.0, y: -1.0, z: -1.0)
-        horizontal  = Vec3(x:  4.0, y:  0.0, z:  0.0)
-        vertical    = Vec3(x:  0.0, y:  2.0, z:  0.0)
-        origin      = Vec3(x:  0.0, y:  0.0, z:  0.0)
 
     for y in countdown(height - 1, 0):
         for x in 0..<width:
@@ -91,7 +101,7 @@ proc draw(width: int, height: int) =
             let
                 u = float32(x) / float32(width)
                 v = float32(y) / float32(height)
-                ray = Ray(origin: origin, direction: lowerLeft + (horizontal * u) + (vertical * v))
+                ray = camera.getRay(u, v)
 
             var col: Vec3
 
