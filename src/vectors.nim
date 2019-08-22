@@ -21,12 +21,12 @@ func `-`* (lhs, rhs: Vec3): Vec3 {.inline.} =
                   y: lhs.y - rhs.y,
                   z: lhs.z - rhs.z)
 
-func `+=`* (lhs: ref Vec3, rhs: Vec3) {.inline.} =
+func `+=`* (lhs: var Vec3, rhs: Vec3) {.inline.} =
     lhs.x += rhs.x
     lhs.y += rhs.y
     lhs.z += rhs.z
 
-func `-=`* (lhs: ref Vec3, rhs: Vec3) {.inline.} =
+func `-=`* (lhs: var Vec3, rhs: Vec3) {.inline.} =
     lhs.x -= rhs.x
     lhs.y -= rhs.y
     lhs.z -= rhs.z
@@ -41,12 +41,17 @@ func `*`* (lhs: float32, rhs: Vec3): Vec3 {.inline.} =
                   y: rhs.y * lhs,
                   z: rhs.z * lhs)
 
-func `*=`* (lhs: ref Vec3, rhs: float32) {.inline.} =
+func `*=`* (lhs: var Vec3, rhs: float32) {.inline.} =
     lhs.x *= rhs
     lhs.y *= rhs
     lhs.z *= rhs
 
-func mul* (lhs: ref Vec3, rhs: Vec3): Vec3 {.inline.} =
+func `/=`* (lhs: var Vec3, rhs: float32) {.inline.} =
+    lhs.x /= rhs
+    lhs.y /= rhs
+    lhs.z /= rhs
+
+func mul* (lhs: var Vec3, rhs: Vec3): Vec3 {.inline.} =
     result = Vec3(x: lhs.x * rhs.x,
                   y: lhs.y * rhs.y,
                   z: lhs.z * rhs.z)

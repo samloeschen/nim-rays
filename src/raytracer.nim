@@ -2,6 +2,8 @@ import stb_image/read as stbi
 import stb_image/write as stbiw
 import interpolation
 import vectors
+import random
+import times
 from math import sqrt
 
 type Ray = object
@@ -68,6 +70,10 @@ type Camera = object
 func getRay(c: Camera, u, v: float): Ray =
     result = Ray(origin: c.position, direction: c.lowerLeft + (c.horizontal * u) + (c.vertical * v))
 
+func setRay(c: Camera, u, v: float, ray: var Ray) =
+    ray.origin = c.position
+    ray.direction = c.lowerLeft + (c.horizontal * u) + (c.vertical * v)
+
 
 # SCENE
 const
@@ -75,7 +81,7 @@ const
     backgroundB = Vec3(x: 1.0, y: 1.0, z: 1.0)
 
 const
-    spheres = @[
+    world = @[
         Sphere(center: Vec3(x: 0, y: 0, z: -1), radius: 0.5),
         Sphere(center: Vec3(x: 1, y: 0, z: -1), radius: 0.4),
         Sphere(center: Vec3(x: -1, y: 0, z: -1), radius: 0.4)
@@ -90,37 +96,48 @@ const camera = Camera(
 
 # SCENE
 
-func draw(width, height: int) =
+func sample (ray: Ray, color: var Vec3, hitInfo: var HitInfo) {.inline} =
+    if world.hit(ray, 0, 1000, hitInfo):
+        color += (hitInfo.normal + 1) * 0.5
+    else:
+        let
+            dir = normalize(ray.direction)
+            t = 0.5'f32 * (dir.y + 1.0)
+        color += lerp(backgroundA, backgroundB, 1 - t)
+
+proc draw(width, height, samples: int) =
+
+    let start = cpuTime()
+
     var
-        imgData   = newSeq[byte](width * height * stbiw.RGB)
-        count     = 0
+        imgData = newSeq[byte](width * height * stbiw.RGB)
+        count = 0
+        hitInfo = HitInfo()
+        ray = Ray()
+        w = float32(width)
+        h = float32(height)
 
     for y in countdown(height - 1, 0):
         for x in 0..<width:
-
-            let
-                u = float32(x) / float32(width)
-                v = float32(y) / float32(height)
-                ray = camera.getRay(u, v)
-
-            var col: Vec3
-
-            var hitInfo = HitInfo()
-
-            if spheres.hit(ray, 0, 1000, hitInfo):
-                col = (hitInfo.normal + 1) * 0.5
-            else:
+            var color = Vec3(x: 0, y: 0, z: 0)
+            for s in 0..<samples:
                 let
-                    dir = normalize(ray.direction)
-                    t = 0.5'f32 * (dir.y + 1.0)
-                col = lerp(backgroundA, backgroundB, 1 - t)
+                    u = (float32(x) + rand(1.0)) / w
+                    v = (float32(y) + rand(1.0)) / h
 
-            imgData[count    ] = byte(col.x * 255.99)
-            imgData[count + 1] = byte(col.y * 255.99)
-            imgData[count + 2] = byte(col.z * 255.99)
+                camera.setRay(u, v, ray)
+                sample(ray, color, hitInfo)
+
+            color /= float32(samples)
+
+            imgData[count    ] = byte(color.x * 255.99)
+            imgData[count + 1] = byte(color.y * 255.99)
+            imgData[count + 2] = byte(color.z * 255.99)
 
             count += stbiw.RGB
 
     stbiw.writePNG("output.png", width, height, stbiw.RGB, imgData)
 
-draw(512, 256)
+    echo "✨ Finished raytracing in ", cpuTime() - start, " seconds ✨"
+
+draw(512, 256, 100)
