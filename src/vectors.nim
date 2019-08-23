@@ -21,6 +21,11 @@ func `-`* (lhs, rhs: Vec3): Vec3 {.inline.} =
                   y: lhs.y - rhs.y,
                   z: lhs.z - rhs.z)
 
+func `-`* (v: Vec3): Vec3 {.inline.} =
+    result = Vec3(x: -v.x,
+                  y: -v.y,
+                  z: -v.z)
+
 func `+=`* (lhs: var Vec3, rhs: Vec3) {.inline.} =
     lhs.x += rhs.x
     lhs.y += rhs.y

@@ -28,10 +28,10 @@ type Plane = object
 
 proc hit(p: Plane, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool =
 
-    let denom = dot(normalize(p.normal), normalize(r.direction))
+    let denom = dot(-normalize(p.normal), normalize(r.direction))
 
     if denom > 1e-6:
-        let offset = p.position - r.origin
+        let offset = r.origin - p.position
         let t = dot(offset, p.normal) / denom
         if t < tMax and t > tMin:
             hitInfo.t = t
@@ -41,7 +41,7 @@ proc hit(p: Plane, r: Ray, tMin: float, tMax: float, hitInfo: var HitInfo): bool
 
     return false
 
-const plane = Plane(position: Vec3(x: 1, y: -0.4, z: -1), normal: Vec3(x: 0, y: -1, z: 0))
+const plane = Plane(position: Vec3(x: 1, y: -0.4, z: -1), normal: Vec3(x: 0, y: 1, z: 0))
 
 type Sphere = object
     center: Vec3
@@ -131,9 +131,6 @@ proc sample (ray: Ray, color: var Vec3, hitInfo: var HitInfo) {.inline} =
 
     if spheres.hit(ray, 0, 1000, hitInfo):
         color += (hitInfo.normal + 1) * 0.5
-
-    elif plane.hit(ray, 0, 1000, hitInfo):
-            color += (hitInfo.normal + 1) * 0.5
     else:
         let
             dir = normalize(ray.direction)
